@@ -9,16 +9,22 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve the app with Nginx
-FROM nginx:alpine
+# Stage 2: Serve the app with a slim Nginx image
+FROM nginx:alpine-slim
 
-RUN apk add --no-cache curl
+# Port Nginx listens on; override at runtime with -e NGINX_PORT=...
+ENV NGINX_PORT=80
+
+RUN rm -f /etc/nginx/conf.d/default.conf
 
 COPY --from=builder /app/build /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# The image's entrypoint renders templates into /etc/nginx/conf.d/ via envsubst
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-EXPOSE 80
+EXPOSE ${NGINX_PORT}
 
-HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost/ || exit 1
+# busybox wget ships with the base image, so no extra packages are needed
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -q -O /dev/null "http://127.0.0.1:${NGINX_PORT}/healthz" || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
