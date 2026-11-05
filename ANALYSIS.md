@@ -1,4 +1,5 @@
 # Image Size Analysis: Single-Stage vs Multi-Stage
+
 ## Image Size Comparison
 
 | Image | Base image(s) | Size | Compressed |
