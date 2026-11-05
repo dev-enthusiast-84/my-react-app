@@ -1,13 +1,24 @@
-# Stage 1 – build React app
-FROM node:18-alpine AS builder
+# Stage 1: Build the app
+FROM node:20-alpine AS builder
+
 WORKDIR /app
+
 COPY package*.json ./
 RUN npm ci
+
 COPY . .
 RUN npm run build
 
-# Stage 2 – serve with nginx
+# Stage 2: Serve the app with Nginx
 FROM nginx:alpine
+
+RUN apk add --no-cache curl
+
 COPY --from=builder /app/build /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost/ || exit 1
+
 CMD ["nginx", "-g", "daemon off;"]
